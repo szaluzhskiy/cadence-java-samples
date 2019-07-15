@@ -26,6 +26,8 @@ import com.uber.cadence.samples.hellosaga.saga.Saga;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.workflow.*;
 
+import java.io.IOException;
+
 public class HelloSaga {
   static final String TASK_LIST = "HelloSaga";
 
@@ -42,6 +44,9 @@ public class HelloSaga {
 
     @ActivityMethod(scheduleToCloseTimeoutSeconds = 10)
     void makeGreetingCompensation(String name);
+
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 10)
+    void failGreeting(String name);
   }
 
   /** The child workflow interface. */
@@ -70,15 +75,29 @@ public class HelloSaga {
     public String getGreeting(String name) {
 
       try {
-        // Executing an action with compensation
+        // Executing an activity with compensation
+        // Sync API
         String parentGreeting =
             saga.executeFunc(activities::makeGreeting, name, activities::makeGreetingCompensation);
+        // Async API opt.1
+        String parentGreeting1 = saga
+            .executeFuncAsync(activities::makeGreeting, name, activities::makeGreetingCompensation)
+            .get();
+        // Async API opt.2
+        String parentGreeting2 = Async
+            .function(activities::makeGreeting, name)
+            .thenApply(r -> saga.withCompensation(r, activities::makeGreetingCompensation))
+            .get();
 
         // Executing a child workflow with compensation
         String childGreeting = saga.executeChildFuncAsync(child::composeGreeting, name).get();
 
+        // Fail at the very end of processing
+        activities.failGreeting(name);
+
         return parentGreeting + " and " + childGreeting;
       } catch (ActivityFailureException ex) {
+        System.out.println(ex.getMessage());
         // In case of error in parent workflow - compensate everything
         saga.compensate();
         return "Epic fail :(";
@@ -97,6 +116,16 @@ public class HelloSaga {
     @Override
     public void makeGreetingCompensation(String name) {
       System.out.println("GreetingActivitiesImpl::makeGreetingCompensation");
+    }
+
+    @Override
+    public void failGreeting(String name)  {
+      System.out.println("GreetingActivitiesImpl::failGreeting");
+      try {
+        throw new IOException("Something bad happened");
+      } catch (IOException e) {
+        throw Workflow.wrap(e);
+      }
     }
   }
 

@@ -34,6 +34,16 @@ public class Saga {
 
   private Stack<CompensationItem> compensations = new Stack<>();
 
+  public <CA1, R> R withCompensation(Result<R, CA1> activityResult, Functions.Proc1<CA1> compensationProc) {
+    compensations.push(
+        new CompensationItem(
+            getExecutionName(compensationProc),
+            ExecutionType.ACTIVITY,
+            activityResult.compensationArgs,
+            null));
+    return activityResult.getResult();
+  }
+
   public <A1, CA1> void executeProc(
       Functions.Func1<A1, Compensation<CA1>> proc, A1 arg1, Functions.Proc1<CA1> compensationProc) {
     Compensation<CA1> result = proc.apply(arg1);
@@ -145,9 +155,14 @@ public class Saga {
   }
 
   private String getExecutionName(Object compensationProc) {
+    // Better use reflection here?
     SerializedLambda lambda = LambdaUtils.toSerializedLambda(compensationProc);
     String className =
         Arrays.stream(lambda.getImplClass().split("/")).reduce((first, second) -> second).get();
+    // handle internal classes
+    className =
+        Arrays.stream(className.split("\\$")).reduce((first, second) -> second).get();
+
     String methodName = lambda.getImplMethodName();
     // does not takes into account activity name at annotation, taken from InternalUtils
     return className + "::" + methodName;
