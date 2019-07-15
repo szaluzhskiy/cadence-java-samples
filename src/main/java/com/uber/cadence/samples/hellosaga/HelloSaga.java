@@ -79,15 +79,6 @@ public class HelloSaga {
         // Sync API
         String parentGreeting =
             saga.executeFunc(activities::makeGreeting, name, activities::makeGreetingCompensation);
-        // Async API opt.1
-        String parentGreeting1 = saga
-            .executeFuncAsync(activities::makeGreeting, name, activities::makeGreetingCompensation)
-            .get();
-        // Async API opt.2
-        String parentGreeting2 = Async
-            .function(activities::makeGreeting, name)
-            .thenApply(r -> saga.withCompensation(r, activities::makeGreetingCompensation))
-            .get();
 
         // Executing a child workflow with compensation
         String childGreeting = saga.executeChildFuncAsync(child::composeGreeting, name).get();
@@ -109,13 +100,13 @@ public class HelloSaga {
 
     @Override
     public Saga.Result<String, String> makeGreeting(String name) {
-      System.out.println("GreetingActivitiesImpl::makeGreeting");
+      System.out.println("GreetingActivitiesImpl::makeGreeting for " + name);
       return new Saga.Result<>("Hello " + name, name);
     }
 
     @Override
     public void makeGreetingCompensation(String name) {
-      System.out.println("GreetingActivitiesImpl::makeGreetingCompensation");
+      System.out.println("GreetingActivitiesImpl::makeGreetingCompensation for " + name);
     }
 
     @Override
@@ -138,13 +129,34 @@ public class HelloSaga {
     private final Saga saga = new Saga();
     private final GreetingChildActivities activities =
         Workflow.newActivityStub(GreetingChildActivities.class);
+    private final GreetingChild child = Workflow.newChildWorkflowStub(GreetingChild.class);
 
     @Override
     public Saga.WorkflowResult<String> composeGreeting(String name) {
       try {
         // Execute an action with compensation
         String greeting =
-            saga.executeFunc(activities::makeGreeting, name, activities::makeGreetingCompensation);
+            saga.executeFunc(activities::makeGreeting, name + " 0", activities::makeGreetingCompensation);
+        // Async API opt.1
+        String greeting1 = saga
+            .executeFuncAsync(activities::makeGreeting, name + " 1", activities::makeGreetingCompensation)
+            .get();
+        // Async API opt.2
+        String greeting2 = Async
+            .function(activities::makeGreeting, name + " 2")
+            .thenApply(r -> saga.withCompensation(r, activities::makeGreetingCompensation))
+            .get();
+        // Async API opt.3
+        String greeting3 = Async
+            .function(activities::makeGreeting, name + " 3")
+            .thenApply(saga.withCompensation(activities::makeGreetingCompensation))
+            .get();
+
+        // Add recursive call to check deeply nested compensation works.
+        if (!name.startsWith("____")) {
+           saga.executeChildFuncAsync(child::composeGreeting, "_" + name).get();
+        }
+
         // Return all the data required for compensation of the whole workflow
         return new Saga.WorkflowResult<>(greeting, saga.exportCompensations());
       } catch (ActivityFailureException ex) {
@@ -158,13 +170,13 @@ public class HelloSaga {
   public static class GreetingChildActivitiesImpl implements GreetingChildActivities {
     @Override
     public Saga.Result<String, String> makeGreeting(String name) {
-      System.out.println("GreetingChildActivitiesImpl::makeGreeting");
+      System.out.println("GreetingChildActivitiesImpl::makeGreeting for " + name);
       return new Saga.Result<>("Hello from child " + name, name);
     }
 
     @Override
     public void makeGreetingCompensation(String name) {
-      System.out.println("GreetingChildActivitiesImpl::makeGreetingCompensation");
+      System.out.println("GreetingChildActivitiesImpl::makeGreetingCompensation for " + name);
     }
   }
 

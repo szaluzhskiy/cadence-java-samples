@@ -34,6 +34,18 @@ public class Saga {
 
   private Stack<CompensationItem> compensations = new Stack<>();
 
+  public <CA1, R> Functions.Func1<Result<R, CA1>, R> withCompensation(Functions.Proc1<CA1> compensationProc) {
+    return activityResult -> {
+      compensations.push(
+          new CompensationItem(
+              getExecutionName(compensationProc),
+              ExecutionType.ACTIVITY,
+              activityResult.compensationArgs,
+              null));
+      return activityResult.getResult();
+    };
+  }
+
   public <CA1, R> R withCompensation(Result<R, CA1> activityResult, Functions.Proc1<CA1> compensationProc) {
     compensations.push(
         new CompensationItem(
