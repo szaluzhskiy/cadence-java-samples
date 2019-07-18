@@ -123,7 +123,7 @@ public class HelloChildWithInheritedArgs {
       GreetingBaseArgsExtended result = (GreetingBaseArgsExtended) exceptionTypeAdapter.fromJsonTree(object);
 
       // get names of the known properties
-      Set<String> knownProperties = Arrays.stream(GreetingBaseArgs.class.getDeclaredFields())
+      Set<String> knownProperties = Arrays.stream(GreetingBaseArgs.class.getFields())
           .map(Field::getName)
           .collect(Collectors.toSet());
 
