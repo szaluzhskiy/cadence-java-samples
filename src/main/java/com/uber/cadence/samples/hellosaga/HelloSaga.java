@@ -51,7 +51,7 @@ public class HelloSaga {
 
   /** The child workflow interface. */
   public interface GreetingChild {
-    @WorkflowMethod
+    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 10, taskList = TASK_LIST)
     Saga.WorkflowResult<String> composeGreeting(String name);
   }
 

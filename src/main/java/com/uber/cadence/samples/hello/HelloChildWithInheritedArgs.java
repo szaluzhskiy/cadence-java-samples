@@ -18,12 +18,10 @@
 package com.uber.cadence.samples.hello;
 
 import com.google.gson.*;
-import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerOptions;
@@ -57,7 +55,12 @@ public class HelloChildWithInheritedArgs {
     }
   }
 
-  public static class GreetingBaseArgsExtended extends GreetingBaseArgs {
+  public interface Extendable {
+    Map<String, Object> getExtension();
+    void setExtension(Map<String, Object> extension);
+  }
+
+  public static class GreetingBaseArgsExtended extends GreetingBaseArgs implements Extendable {
 
     private Map<String,Object> extension = new HashMap<>();
 
@@ -75,25 +78,40 @@ public class HelloChildWithInheritedArgs {
 
   }
 
-  public static class GreetingTypeAdapterFactory implements TypeAdapterFactory {
+  // Could not managed to bound TOutput to both TInput and Extendable. It must extends both, actually.
+  public static class ExtendableTypeAdapterFactory<TInput, TOutput extends Extendable> implements TypeAdapterFactory {
+
+    private Class<TInput> inputClass;
+    private Class<TOutput> outputClass;
+
+    public ExtendableTypeAdapterFactory(Class<TInput> inputClass, Class<TOutput> outputClass) {
+
+      this.inputClass = inputClass;
+      this.outputClass = outputClass;
+    }
+
     @Override
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
-      // only for GreetingBaseArgs (on read) and GreetingBaseArgsExtended (on write)
-      if (GreetingBaseArgs.class != type.getRawType() && GreetingBaseArgsExtended.class != type.getRawType()) {
+      // directly inputClass (on read) and for outputClass (on write)
+      if (inputClass != type.getRawType() && GreetingBaseArgsExtended.class != type.getRawType()) {
         return null;
       }
-      return new GreetingTypeAdapter(gson, this).nullSafe();
+      return new ExtendableTypeAdapter(gson, this, inputClass, outputClass).nullSafe();
     }
   }
 
-  public static class GreetingTypeAdapter<T extends GreetingBaseArgs> extends TypeAdapter<T> {
+  public static class ExtendableTypeAdapter<T extends GreetingBaseArgs> extends TypeAdapter<T> {
 
     private final Gson gson;
     private final TypeAdapterFactory skipPast;
+    private final Class inputClass;
+    private final Class outputClass;
 
-    public GreetingTypeAdapter(Gson gson, TypeAdapterFactory skipPast) {
+    public ExtendableTypeAdapter(Gson gson, TypeAdapterFactory skipPast, Class inputClass, Class outputClass) {
       this.gson = gson;
       this.skipPast = skipPast;
+      this.inputClass = inputClass;
+      this.outputClass = outputClass;
     }
 
     @Override
@@ -105,7 +123,7 @@ public class HelloChildWithInheritedArgs {
       TypeAdapter<JsonElement> elementAdapter = gson.getAdapter(JsonElement.class);
 
       //write extended properties
-      Map<String, Object> extendedProperties = ((GreetingBaseArgsExtended) value).getExtension();
+      Map<String, Object> extendedProperties = ((Extendable) value).getExtension();
       for (Map.Entry<String, Object> entry : extendedProperties.entrySet()) {
         object.add(entry.getKey(), gson.toJsonTree(entry.getValue()));
       }
@@ -119,11 +137,11 @@ public class HelloChildWithInheritedArgs {
       TypeAdapter<JsonElement> elementAdapter = gson.getAdapter(JsonElement.class);
       JsonObject object = elementAdapter.read(in).getAsJsonObject();
       TypeAdapter exceptionTypeAdapter =
-          gson.getDelegateAdapter(skipPast, TypeToken.get(GreetingBaseArgsExtended.class));
-      GreetingBaseArgsExtended result = (GreetingBaseArgsExtended) exceptionTypeAdapter.fromJsonTree(object);
+          gson.getDelegateAdapter(skipPast, TypeToken.get(outputClass));
+      Extendable result = (Extendable)exceptionTypeAdapter.fromJsonTree(object);
 
       // get names of the known properties
-      Set<String> knownProperties = Arrays.stream(GreetingBaseArgs.class.getFields())
+      Set<String> knownProperties = Arrays.stream(inputClass.getFields())
           .map(Field::getName)
           .collect(Collectors.toSet());
 
@@ -198,7 +216,8 @@ public class HelloChildWithInheritedArgs {
         TASK_LIST,
         new WorkerOptions.Builder()
             .setDataConverter(new JsonDataConverter(builder ->
-              builder.registerTypeAdapterFactory(new GreetingTypeAdapterFactory())
+              builder.registerTypeAdapterFactory(
+                  new ExtendableTypeAdapterFactory(GreetingBaseArgs.class, GreetingBaseArgsExtended.class))
             ))
             .build());
     worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class, GreetingChildImpl.class);
