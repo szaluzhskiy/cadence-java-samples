@@ -93,14 +93,14 @@ public class HelloChildWithInheritedArgs {
     @Override
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
       // directly inputClass (on read) and for outputClass (on write)
-      if (inputClass != type.getRawType() && GreetingBaseArgsExtended.class != type.getRawType()) {
+      if (inputClass != type.getRawType() && outputClass != type.getRawType()) {
         return null;
       }
       return new ExtendableTypeAdapter(gson, this, inputClass, outputClass).nullSafe();
     }
   }
 
-  public static class ExtendableTypeAdapter<T extends GreetingBaseArgs> extends TypeAdapter<T> {
+  public static class ExtendableTypeAdapter<T> extends TypeAdapter<T> {
 
     private final Gson gson;
     private final TypeAdapterFactory skipPast;
@@ -216,8 +216,8 @@ public class HelloChildWithInheritedArgs {
         TASK_LIST,
         new WorkerOptions.Builder()
             .setDataConverter(new JsonDataConverter(builder ->
-              builder.registerTypeAdapterFactory(
-                  new ExtendableTypeAdapterFactory(GreetingBaseArgs.class, GreetingBaseArgsExtended.class))
+                builder.registerTypeAdapterFactory(
+                    new ExtendableTypeAdapterFactory(GreetingBaseArgs.class, GreetingBaseArgsExtended.class))
             ))
             .build());
     worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class, GreetingChildImpl.class);
