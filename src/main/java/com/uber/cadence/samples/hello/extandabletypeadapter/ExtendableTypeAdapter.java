@@ -55,17 +55,17 @@ public class ExtendableTypeAdapter<T> extends TypeAdapter<T> {
         gson.getDelegateAdapter(skipPast, TypeToken.get(outputClass));
     Extendable result = (Extendable) exceptionTypeAdapter.fromJsonTree(object);
 
-    // get names of the known properties
-    Set<String> knownProperties = Arrays.stream(inputClass.getDeclaredFields())
-        .map(Field::getName)
-        .collect(Collectors.toSet());
-
-    // read extended properties
-    Map<String, Object> extendedProperties = object.keySet()
-        .stream()
-        .filter(x -> !knownProperties.contains(x))
-        .collect(Collectors.toMap(key -> key, object::get));
-    result.setExtension(extendedProperties);
+//    // get names of the known properties
+//    Set<String> knownProperties = Arrays.stream(inputClass.getDeclaredFields())
+//        .map(Field::getName)
+//        .collect(Collectors.toSet());
+//
+//    // read extended properties
+//    Map<String, Object> extendedProperties = object.keySet()
+//        .stream()
+//        .filter(x -> !knownProperties.contains(x))
+//        .collect(Collectors.toMap(key -> key, object::get));
+//    result.setExtension(extendedProperties);
 
     return (T) result;
   }
