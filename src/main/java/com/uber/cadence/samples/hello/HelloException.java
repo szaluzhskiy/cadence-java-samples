@@ -61,7 +61,7 @@ import java.time.Duration;
  *     at com.uber.cadence.internal.dispatcher.WorkflowExternalInvocationHandler.invoke(WorkflowExternalInvocationHandler.java:113)
  *     at com.sun.proxy.$Proxy2.getGreeting(Unknown Source)
  *     at com.uber.cadence.samples.hello.HelloException.main(HelloException.java:117)
- * Caused by: com.uber.cadence.workflow.ChildWorkflowFailureException: WorkflowType="GreetingChild::composeGreeting", ID="37ceb58c-9271-4fca-b5aa-ba06c5495214:1", RunID="47859b47-da4c-4225-876a-462421c98c72, EventID=10
+ * Caused by: com.uber.cadence.workflow.ChildWorkflowFailureException: WorkflowType="GreetingChildWorkflow::composeGreeting", ID="37ceb58c-9271-4fca-b5aa-ba06c5495214:1", RunID="47859b47-da4c-4225-876a-462421c98c72, EventID=10
  *     at java.lang.Thread.getStackTrace(Thread.java:1559)
  *     at com.uber.cadence.internal.dispatcher.ChildWorkflowInvocationHandler.executeChildWorkflow(ChildWorkflowInvocationHandler.java:114)
  *     at com.uber.cadence.internal.dispatcher.ChildWorkflowInvocationHandler.invoke(ChildWorkflowInvocationHandler.java:71)
@@ -76,7 +76,7 @@ import java.time.Duration;
  *     at java.lang.Thread.getStackTrace(Thread.java:1559)
  *     at com.uber.cadence.internal.dispatcher.ActivityInvocationHandler.invoke(ActivityInvocationHandler.java:75)
  *     at com.sun.proxy.$Proxy6.composeGreeting(Unknown Source:0)
- *     at com.uber.cadence.samples.hello.HelloException$GreetingChildImpl.composeGreeting(HelloException.java:85)
+ *     at com.uber.cadence.samples.hello.HelloException$GreetingChildWorkflowImpl.composeGreeting(HelloException.java:85)
  *     ... 5 more
  * Caused by: java.io.IOException: Hello World!
  *     at com.uber.cadence.samples.hello.HelloException$GreetingActivitiesImpl.composeGreeting(HelloException.java:93)
@@ -119,7 +119,7 @@ public class HelloException {
     String composeGreeting(String greeting, String name);
   }
 
-  /** Parent implementation that calls GreetingChild#composeGreeting. */
+  /** Parent implementation that calls GreetingChildWorkflow#composeGreeting. */
   public static class GreetingWorkflowImpl implements GreetingWorkflow {
 
     @Override
