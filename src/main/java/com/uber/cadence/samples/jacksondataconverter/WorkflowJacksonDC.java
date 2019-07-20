@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.samples.jacksondataconverter.dto.ErrorBodyImpl;
+import com.uber.cadence.samples.jacksondataconverter.dto.MessageResponse;
 import com.uber.cadence.samples.jacksondataconverter.dto.MessageResponseImpl;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.workflow.Async;
@@ -22,20 +23,20 @@ public class WorkflowJacksonDC {
   public interface ResponseWorkflow {
 
     @WorkflowMethod(executionStartToCloseTimeoutSeconds = 10, taskList = TASK_LIST)
-    String handleResponse(MessageResponseImpl response);
+    String handleResponse(MessageResponse response);
   }
 
   public interface ResponseChild {
 
     @WorkflowMethod
-    String composeResponse(String prefix, MessageResponseImpl response);
+    String composeResponse(String prefix, MessageResponse response);
   }
 
   public static class ResponseWorkflowImpl implements ResponseWorkflow {
 
     @Override
     @SneakyThrows
-    public String handleResponse(MessageResponseImpl response) {
+    public String handleResponse(MessageResponse response) {
       ResponseChild child = Workflow.newChildWorkflowStub(ResponseChild.class);
       System.out.println("inside parent wf: " + jackson.writeValueAsString(response));
       Promise<String> greeting = Async.function(child::composeResponse, "Hello", response);
@@ -47,7 +48,7 @@ public class WorkflowJacksonDC {
 
     @Override
     @SneakyThrows
-    public String composeResponse(String prefix, MessageResponseImpl response) {
+    public String composeResponse(String prefix, MessageResponse response) {
       return prefix + " " + jackson.writeValueAsString(response) + "!";
     }
   }
