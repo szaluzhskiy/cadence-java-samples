@@ -26,9 +26,7 @@ import org.junit.runner.Description;
 
 public class WorkflowJacksonDCTest {
 
-  /**
-   * Prints workflow histories under test in case of a test failure.
-   */
+  /** Prints workflow histories under test in case of a test failure. */
   @Rule
   public TestWatcher watchman =
       new TestWatcher() {

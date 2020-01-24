@@ -12,35 +12,35 @@ import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.concurrent.*;
-import java.util.function.Function;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Demonstrates payment gw interation which must be completed after timeout. Requires a local
  * instance of the Cadence service to be running.
  */
+@Slf4j
 public class HelloAsyncLambdaTimeLimit {
 
   static final String TASK_LIST = "HelloWorkflowCompleteByTimeout";
-  static final Integer ACTIVITY_DURATION_SEC = 10;
+  static final Integer ACTIVITY_DURATION_EXTERNAL_SEC = 5;
+  static final Integer ACTIVITY_DURATION_INTERNAL_SEC = 60;
+
+  public interface CallbackService {
+    String success(String result);
+
+    String fail(Throwable ex);
+  }
 
   public interface PaymentWorkflow {
     /** @return payment status */
     @WorkflowMethod
-    String payment(
-        String amount,
-        String account,
-        Function<String, String> callbackPositive,
-        Function<Throwable, String> callbackNegative);
+    String payment(String amount, String account, CallbackServiceImpl callback);
   }
 
   public interface PaymentActivity {
     String makePayment(String amount, String account);
-  }
-
-  public interface ReportPaymentActivities {
-    String report(String amount, String account, String status);
   }
 
   /**
@@ -50,6 +50,8 @@ public class HelloAsyncLambdaTimeLimit {
    */
   public static class PaymentWorkflowImpl implements PaymentWorkflow {
 
+    public PaymentWorkflowImpl() {}
+
     /**
      * To enable activity retry set {@link RetryOptions} on {@link ActivityOptions}. It also works
      * for activities invoked through and or child workflows.
@@ -58,41 +60,42 @@ public class HelloAsyncLambdaTimeLimit {
         Workflow.newActivityStub(
             PaymentActivity.class,
             new ActivityOptions.Builder()
-                .setScheduleToStartTimeout(Duration.ofMillis(1000))
-                .setStartToCloseTimeout(Duration.ofSeconds(ACTIVITY_DURATION_SEC - 1000))
+                .setScheduleToCloseTimeout(Duration.ofSeconds(ACTIVITY_DURATION_EXTERNAL_SEC))
                 .setRetryOptions(
                     new RetryOptions.Builder()
                         .setInitialInterval(Duration.ofSeconds(1))
                         .setBackoffCoefficient(1.1)
-                        .setExpiration(Duration.ofSeconds(ACTIVITY_DURATION_SEC))
+                        .setMaximumAttempts(1000)
+                        // .setExpiration(Duration.ofSeconds(ACTIVITY_DURATION_EXTERNAL_SEC))
                         .setDoNotRetry(IllegalArgumentException.class)
                         .build())
                 .build());
 
     @Override
-    public String payment(
-        String amount,
-        String account,
-        Function<String, String> callbackPositive,
-        Function<Throwable, String> callbackNegative) {
+    public String payment(String amount, String account, CallbackServiceImpl callback) {
+
       // Async.invoke accepts not only activity or child workflow method references
       // but lambda functions as well. Behind the scene it allocates a thread
       // to execute it asynchronously.
       Promise<String> result =
           Async.function(
               () -> {
-                return paymentActivity.makePayment(amount, account);
+                log.info("7");
+                String s = paymentActivity.makePayment(amount, account);
+                log.info("res {}", s);
+                return s;
               });
       String resStr;
       try {
-        resStr =
-            result
-                .thenApply(res -> callbackPositive.apply(res))
-                .exceptionally(e -> callbackNegative.apply(e))
-                .get(ACTIVITY_DURATION_SEC, TimeUnit.SECONDS);
+        log.info("1");
+        resStr = result.get(ACTIVITY_DURATION_EXTERNAL_SEC, TimeUnit.SECONDS);
+        log.info("2");
       } catch (TimeoutException e) {
-        resStr = callbackNegative.apply(e);
+        log.info("3");
+        resStr = callback.fail(e);
+        log.info("4");
       }
+      log.info("5");
       return resStr;
     }
   }
@@ -130,9 +133,9 @@ public class HelloAsyncLambdaTimeLimit {
 
     @Override
     public String makePayment(String amount, String account) {
-      System.out.println(">>> Start makePayment");
       // 1. never ends task
-      longRunningTask(null);
+      // longRunningTask(null);
+      longRunningTask(Duration.ofSeconds(ACTIVITY_DURATION_INTERNAL_SEC));
 
       // 2. Throw some runtime exception, emulation of RestClientException
       // throw new RuntimeException("RestClientException");
@@ -150,31 +153,20 @@ public class HelloAsyncLambdaTimeLimit {
     }
   }
 
+  @SneakyThrows
   private static void longRunningTask(Duration duration) {
     if (duration == null) {
+      System.out.println("TASK STARTED");
       int i = 0;
       while (true) {
         i = i % 2 == 0 ? i - 1 : i + 1;
       }
     } else {
-      ExecutorService es = Executors.newFixedThreadPool(1);
-      Future<Void> f =
-          es.submit(
-              () -> {
-                int i = 0;
-                while (true) {
-                  i = i % 2 == 0 ? i - 1 : i + 1;
-                }
-              });
-      try {
-        f.get(duration.get(ChronoUnit.SECONDS), TimeUnit.SECONDS);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      } catch (ExecutionException e) {
-        e.printStackTrace();
-      } catch (TimeoutException e) {
-        e.printStackTrace();
-      }
+      System.out.println("TASK STARTED");
+      log.info("6-1");
+      Thread.sleep(1000 * 50);
+      log.info("6-2");
+      System.out.println("TASK FINISHED");
     }
   }
 
@@ -201,18 +193,8 @@ public class HelloAsyncLambdaTimeLimit {
         workflowClient.newWorkflowStub(PaymentWorkflow.class, workflowOptions);
     // Execute a workflow waiting for it to complete.
     String paymentResult =
-        workflow.payment(
-            "1000",
-            "3234-0989-0988-0988",
-            (r) -> {
-              System.out.println(r);
-              return r;
-            },
-            (e) -> {
-              System.out.println(e);
-              return "PAYMENT FAILED";
-            });
+        workflow.payment("1000", "3234-0989-0988-0988", new CallbackServiceImpl());
     System.out.println(paymentResult);
-    System.exit(0);
+    // System.exit(0);
   }
 }

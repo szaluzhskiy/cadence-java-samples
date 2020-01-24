@@ -20,9 +20,7 @@ import org.junit.runner.Description;
 
 public class ActivityInheritanceTest {
 
-  /**
-   * Prints workflow histories under test in case of a test failure.
-   */
+  /** Prints workflow histories under test in case of a test failure. */
   @Rule
   public TestWatcher watchman =
       new TestWatcher() {
@@ -55,7 +53,9 @@ public class ActivityInheritanceTest {
   @SneakyThrows
   public void test1() {
     worker.registerWorkflowImplementationTypes(ActivityInheritanceWorkflowFail1Impl.class);
-    worker.registerActivitiesImplementations(new ActivityInheritanceFail1.TypeAActivityImpl(), new ActivityInheritanceFail1.TypeBActivityImpl());
+    worker.registerActivitiesImplementations(
+        new ActivityInheritanceFail1.TypeAActivityImpl(),
+        new ActivityInheritanceFail1.TypeBActivityImpl());
     testEnv.start();
 
     WorkflowOptions workflowOptions =
@@ -63,8 +63,8 @@ public class ActivityInheritanceTest {
             .setTaskList(Constants.TASK_LIST)
             .setExecutionStartToCloseTimeout(Duration.ofSeconds(5))
             .build();
-    ActivityInheritanceWorkflow workflow = workflowClient
-        .newWorkflowStub(ActivityInheritanceWorkflow.class, workflowOptions);
+    ActivityInheritanceWorkflow workflow =
+        workflowClient.newWorkflowStub(ActivityInheritanceWorkflow.class, workflowOptions);
 
     List<String> result = workflow.send("request123");
     System.out.println(result);
@@ -74,7 +74,9 @@ public class ActivityInheritanceTest {
   @SneakyThrows
   public void test2() {
     worker.registerWorkflowImplementationTypes(ActivityInheritanceWorkflowFail2Impl.class);
-    worker.registerActivitiesImplementations(new ActivityInheritanceFail2.TypeAActivityImpl(), new ActivityInheritanceFail2.TypeBActivityImpl());
+    worker.registerActivitiesImplementations(
+        new ActivityInheritanceFail2.TypeAActivityImpl(),
+        new ActivityInheritanceFail2.TypeBActivityImpl());
     testEnv.start();
 
     WorkflowOptions workflowOptions =
@@ -82,8 +84,8 @@ public class ActivityInheritanceTest {
             .setTaskList(Constants.TASK_LIST)
             .setExecutionStartToCloseTimeout(Duration.ofSeconds(5))
             .build();
-    ActivityInheritanceWorkflow workflow = workflowClient
-        .newWorkflowStub(ActivityInheritanceWorkflow.class, workflowOptions);
+    ActivityInheritanceWorkflow workflow =
+        workflowClient.newWorkflowStub(ActivityInheritanceWorkflow.class, workflowOptions);
 
     List<String> result = workflow.send("request123");
     System.out.println(result);
