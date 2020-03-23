@@ -15,5 +15,4 @@ public class TypeBResponse extends BaseResponse {
     super(requestId, success);
     this.responseB = responseB;
   }
-
 }

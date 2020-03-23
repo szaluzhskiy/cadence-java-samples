@@ -6,7 +6,8 @@ import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 
 // Could not managed to bound TOutput to both TInput and Extendable. It must extends both, actually.
-public class ExtendableTypeAdapterFactory<TInput, TOutput extends Extendable> implements TypeAdapterFactory {
+public class ExtendableTypeAdapterFactory<TInput, TOutput extends Extendable>
+    implements TypeAdapterFactory {
 
   private Class<TInput> inputClass;
   private Class<TOutput> outputClass;

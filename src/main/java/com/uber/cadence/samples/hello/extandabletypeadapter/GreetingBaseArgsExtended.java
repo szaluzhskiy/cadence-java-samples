@@ -20,7 +20,7 @@ public class GreetingBaseArgsExtended extends GreetingBaseArgs implements Extend
     this.extension = extension;
   }
 
-  private Map<String,Object> extension = new HashMap<>();
+  private Map<String, Object> extension = new HashMap<>();
 
   public Map<String, Object> getExtension() {
     return extension;

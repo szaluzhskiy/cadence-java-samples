@@ -55,7 +55,8 @@ public class HelloChildWithInheritedArgs {
     @Override
     public String getGreeting(GreetingBaseArgs args) {
       // Workflows are stateful. So a new stub must be created for each new child.
-      ChildWorkflowStub child = Workflow.newUntypedChildWorkflowStub("GreetingChild::composeGreeting");
+      ChildWorkflowStub child =
+          Workflow.newUntypedChildWorkflowStub("GreetingChild::composeGreeting");
 
       return child.execute(String.class, "Hello", args);
     }
@@ -75,14 +76,17 @@ public class HelloChildWithInheritedArgs {
   public static void main(String[] args) {
     // Start a worker that hosts both parent and child workflow implementations.
     Worker.Factory factory = new Worker.Factory(DOMAIN);
-    Worker worker = factory.newWorker(
-        TASK_LIST,
-        new WorkerOptions.Builder()
-            .setDataConverter(new JsonDataConverter(builder ->
-                builder.registerTypeAdapterFactory(
-                    new ExtendableTypeAdapterFactory(GreetingBaseArgs.class, GreetingBaseArgsExtended.class))
-            ))
-            .build());
+    Worker worker =
+        factory.newWorker(
+            TASK_LIST,
+            new WorkerOptions.Builder()
+                .setDataConverter(
+                    new JsonDataConverter(
+                        builder ->
+                            builder.registerTypeAdapterFactory(
+                                new ExtendableTypeAdapterFactory(
+                                    GreetingBaseArgs.class, GreetingBaseArgsExtended.class))))
+                .build());
     worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class, GreetingChildImpl.class);
     // Start listening to the workflow task list.
     factory.start();
@@ -93,7 +97,7 @@ public class HelloChildWithInheritedArgs {
     GreetingWorkflow workflow = workflowClient.newWorkflowStub(GreetingWorkflow.class);
     // Execute a workflow waiting for it to complete.
 
-    //Integration sends child and child casted to parent
+    // Integration sends child and child casted to parent
     GreetingBaseArgs base = new GreetingChildArgs("World", "from a child class");
 
     String greeting = workflow.getGreeting(base);

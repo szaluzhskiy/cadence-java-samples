@@ -17,18 +17,14 @@ import lombok.extern.slf4j.Slf4j;
 public class ActivityInheritanceWorkflowFail1Impl implements ActivityInheritanceWorkflow {
 
   private final BaseActivity<TypeARequest, TypeAResponse> activityA =
-      com.uber.cadence.workflow.Workflow
-          .newActivityStub(
-              BaseActivity.class,
-              new ActivityOptions.Builder().setScheduleToCloseTimeout(Duration.ofSeconds(10))
-                  .build()
-          );
+      com.uber.cadence.workflow.Workflow.newActivityStub(
+          BaseActivity.class,
+          new ActivityOptions.Builder().setScheduleToCloseTimeout(Duration.ofSeconds(10)).build());
 
   private final BaseActivity<TypeBRequest, TypeBResponse> activityB =
       com.uber.cadence.workflow.Workflow.newActivityStub(
           BaseActivity.class,
-          new ActivityOptions.Builder().setScheduleToCloseTimeout(Duration.ofSeconds(10)).build()
-      );
+          new ActivityOptions.Builder().setScheduleToCloseTimeout(Duration.ofSeconds(10)).build());
 
   @Override
   public List<String> send(String request) {
@@ -37,18 +33,14 @@ public class ActivityInheritanceWorkflowFail1Impl implements ActivityInheritance
 
     final List<String> result = Lists.newArrayList();
 
-    final TypeARequest requestA = TypeARequest.builder()
-        .requestId(UUID.randomUUID().toString())
-        .requestA(request)
-        .build();
+    final TypeARequest requestA =
+        TypeARequest.builder().requestId(UUID.randomUUID().toString()).requestA(request).build();
 
     log.info("executing A with request: {} ...", requestA);
     result.add(activityA.process(requestA).getResponseA());
 
-    final TypeBRequest requestB = TypeBRequest.builder()
-        .requestId(UUID.randomUUID().toString())
-        .requestB(request)
-        .build();
+    final TypeBRequest requestB =
+        TypeBRequest.builder().requestId(UUID.randomUUID().toString()).requestB(request).build();
     log.info("executing B with request: {} ...", requestB);
     result.add(activityB.process(requestB).getResponseB());
 

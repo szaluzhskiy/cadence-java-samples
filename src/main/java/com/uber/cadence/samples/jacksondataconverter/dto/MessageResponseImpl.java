@@ -27,8 +27,7 @@ public class MessageResponseImpl implements MessageResponse {
   @JsonProperty("errorList")
   private List<ErrorBody> errorList;
 
-  @JsonIgnore
-  private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+  @JsonIgnore private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
   @JsonProperty("requestId")
   public String getRequestId() {

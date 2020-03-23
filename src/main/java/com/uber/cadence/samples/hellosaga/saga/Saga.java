@@ -34,7 +34,8 @@ public class Saga {
 
   private Stack<CompensationItem> compensations = new Stack<>();
 
-  public <CA1, R> Functions.Func1<Result<R, CA1>, R> withCompensation(Functions.Proc1<CA1> compensationProc) {
+  public <CA1, R> Functions.Func1<Result<R, CA1>, R> withCompensation(
+      Functions.Proc1<CA1> compensationProc) {
     return activityResult -> {
       compensations.push(
           new CompensationItem(
@@ -46,7 +47,8 @@ public class Saga {
     };
   }
 
-  public <CA1, R> R withCompensation(Result<R, CA1> activityResult, Functions.Proc1<CA1> compensationProc) {
+  public <CA1, R> R withCompensation(
+      Result<R, CA1> activityResult, Functions.Proc1<CA1> compensationProc) {
     compensations.push(
         new CompensationItem(
             getExecutionName(compensationProc),
@@ -172,8 +174,7 @@ public class Saga {
     String className =
         Arrays.stream(lambda.getImplClass().split("/")).reduce((first, second) -> second).get();
     // handle internal classes
-    className =
-        Arrays.stream(className.split("\\$")).reduce((first, second) -> second).get();
+    className = Arrays.stream(className.split("\\$")).reduce((first, second) -> second).get();
 
     String methodName = lambda.getImplMethodName();
     // does not takes into account activity name at annotation, taken from InternalUtils

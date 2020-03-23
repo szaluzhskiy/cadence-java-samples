@@ -22,18 +22,10 @@ import static com.uber.cadence.samples.hello.child.parent.GreetingChild.TASK_LIS
 import static com.uber.cadence.samples.hello.child.parent.GreetingWorkflow.TASK_LIST_PARENT;
 
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.samples.hello.HelloChild.GreetingChild;
-import com.uber.cadence.samples.hello.HelloChild.GreetingChildOnChildSideImpl;
-import com.uber.cadence.samples.hello.HelloChild.GreetingChildOnParentSide;
 import com.uber.cadence.samples.hello.HelloChild.GreetingWorkflow;
 import com.uber.cadence.samples.hello.child.child.GreetingChildSubInterfaceImpl;
 import com.uber.cadence.samples.hello.child.parent.GreetingWorkflowImpl;
 import com.uber.cadence.worker.Worker;
-import com.uber.cadence.workflow.Async;
-import com.uber.cadence.workflow.ChildWorkflowOptions;
-import com.uber.cadence.workflow.Promise;
-import com.uber.cadence.workflow.Workflow;
-import com.uber.cadence.workflow.WorkflowMethod;
 
 /** Demonstrates a child workflow. Requires a local instance of the Cadence server to be running. */
 public class HelloChildInheritedChildWorkflowInterface {

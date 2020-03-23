@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.samples.hello.extandabletypeadapter.ExtendableTypeAdapterFactory;
-import com.uber.cadence.samples.hello.extandabletypeadapter.GreetingBaseArgs;
 import com.uber.cadence.samples.hello.extandabletypeadapter.GreetingBaseArgsExtended;
 import com.uber.cadence.samples.hello.extandabletypeadapter.GreetingChildArgs;
 import com.uber.cadence.worker.Worker;
@@ -57,7 +56,8 @@ public class HelloChildWithInheritedArgsFull {
     @Override
     public String getGreeting(GreetingBaseArgsExtended args) {
       // Workflows are stateful. So a new stub must be created for each new child.
-      ChildWorkflowStub child = Workflow.newUntypedChildWorkflowStub("GreetingChild::composeGreeting");
+      ChildWorkflowStub child =
+          Workflow.newUntypedChildWorkflowStub("GreetingChild::composeGreeting");
 
       return child.execute(String.class, "Hello", args);
     }
@@ -81,18 +81,23 @@ public class HelloChildWithInheritedArgsFull {
 
     String source = mapper.writeValueAsString(child);
 
-    GreetingBaseArgsExtended extended = mapper.readValue(source.getBytes(), GreetingBaseArgsExtended.class);
+    GreetingBaseArgsExtended extended =
+        mapper.readValue(source.getBytes(), GreetingBaseArgsExtended.class);
 
     // Start a worker that hosts both parent and child workflow implementations.
     Worker.Factory factory = new Worker.Factory(DOMAIN);
-    Worker worker = factory.newWorker(
-        TASK_LIST,
-        new WorkerOptions.Builder()
-            .setDataConverter(new JsonDataConverter(builder ->
-                builder.registerTypeAdapterFactory(
-                    new ExtendableTypeAdapterFactory(GreetingBaseArgsExtended.class, GreetingBaseArgsExtended.class))
-            ))
-            .build());
+    Worker worker =
+        factory.newWorker(
+            TASK_LIST,
+            new WorkerOptions.Builder()
+                .setDataConverter(
+                    new JsonDataConverter(
+                        builder ->
+                            builder.registerTypeAdapterFactory(
+                                new ExtendableTypeAdapterFactory(
+                                    GreetingBaseArgsExtended.class,
+                                    GreetingBaseArgsExtended.class))))
+                .build());
     worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class, GreetingChildImpl.class);
     // Start listening to the workflow task list.
     factory.start();

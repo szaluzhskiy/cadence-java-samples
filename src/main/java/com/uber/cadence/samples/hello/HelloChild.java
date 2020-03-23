@@ -66,11 +66,12 @@ public class HelloChild {
 
     @Override
     public String getGreeting(String name) {
-      //Define tasklist for child
-      ChildWorkflowOptions options = new ChildWorkflowOptions.Builder().setTaskList(TASK_LIST_CHILD).build();
+      // Define tasklist for child
+      ChildWorkflowOptions options =
+          new ChildWorkflowOptions.Builder().setTaskList(TASK_LIST_CHILD).build();
 
       // Workflows are stateful. So a new stub must be created for each new child.
-      GreetingChild child = Workflow.newChildWorkflowStub(GreetingChildOnParentSide.class,  options);
+      GreetingChild child = Workflow.newChildWorkflowStub(GreetingChildOnParentSide.class, options);
 
       // This is a blocking call that returns only after the child has completed.
       Promise<String> greeting = Async.function(child::composeGreeting, "Hello", name);
@@ -105,8 +106,6 @@ public class HelloChild {
     WorkflowClient workflowClient = WorkflowClient.newInstance("127.0.0.1", 7933, DOMAIN);
     // Get a workflow stub using the same task list the worker uses.
     GreetingWorkflow parentWorkflow = workflowClient.newWorkflowStub(GreetingWorkflow.class);
-
-
 
     // Execute a workflow waiting for it to complete.
     String greeting = parentWorkflow.getGreeting("World");

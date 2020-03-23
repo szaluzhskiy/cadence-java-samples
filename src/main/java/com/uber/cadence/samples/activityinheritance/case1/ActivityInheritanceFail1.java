@@ -16,9 +16,7 @@ import com.uber.cadence.worker.Worker;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * only base activity interface with generic activity method
- */
+/** only base activity interface with generic activity method */
 public class ActivityInheritanceFail1 {
 
   public static void main(String[] args) {
@@ -31,8 +29,8 @@ public class ActivityInheritanceFail1 {
     factory.start();
 
     WorkflowClient workflowClient = WorkflowClient.newInstance(DOMAIN);
-    ActivityInheritanceWorkflow workflow = workflowClient
-        .newWorkflowStub(ActivityInheritanceWorkflow.class);
+    ActivityInheritanceWorkflow workflow =
+        workflowClient.newWorkflowStub(ActivityInheritanceWorkflow.class);
 
     List<String> result = workflow.send("request123");
     System.out.println(result);
@@ -44,12 +42,10 @@ public class ActivityInheritanceFail1 {
 
     @ActivityMethod
     S process(T request);
-
   }
 
-  public static class TypeAActivityImpl extends
-      BaseActivityImpl<TypeARequest, TypeAResponse> implements
-      BaseActivity<TypeARequest, TypeAResponse> {
+  public static class TypeAActivityImpl extends BaseActivityImpl<TypeARequest, TypeAResponse>
+      implements BaseActivity<TypeARequest, TypeAResponse> {
 
     @Override
     protected TypeAResponse send(TypeARequest request) {
@@ -62,18 +58,12 @@ public class ActivityInheritanceFail1 {
 
     @Override
     protected TypeAResponse createErrorResponse(String requestId, String error) {
-      return TypeAResponse.builder()
-          .requestId(requestId)
-          .success(false)
-          .responseA(error)
-          .build();
+      return TypeAResponse.builder().requestId(requestId).success(false).responseA(error).build();
     }
-
   }
 
-  public static class TypeBActivityImpl extends
-      BaseActivityImpl<TypeBRequest, TypeBResponse> implements
-      BaseActivity<TypeBRequest, TypeBResponse> {
+  public static class TypeBActivityImpl extends BaseActivityImpl<TypeBRequest, TypeBResponse>
+      implements BaseActivity<TypeBRequest, TypeBResponse> {
 
     @Override
     protected TypeBResponse send(TypeBRequest request) {
@@ -86,18 +76,13 @@ public class ActivityInheritanceFail1 {
 
     @Override
     protected TypeBResponse createErrorResponse(String requestId, String error) {
-      return TypeBResponse.builder()
-          .requestId(requestId)
-          .success(false)
-          .responseB(error)
-          .build();
+      return TypeBResponse.builder().requestId(requestId).success(false).responseB(error).build();
     }
-
   }
 
   @Slf4j
-  public abstract static class BaseActivityImpl<T extends BaseRequest, S extends BaseResponse> implements
-      BaseActivity<T, S> {
+  public abstract static class BaseActivityImpl<T extends BaseRequest, S extends BaseResponse>
+      implements BaseActivity<T, S> {
 
     protected abstract S send(T request);
 
@@ -117,8 +102,8 @@ public class ActivityInheritanceFail1 {
       } catch (Exception e) {
         log.error("exception while processing request {}", request, e);
       }
-      return createErrorResponse(request.getRequestId(),
-          "no response for " + this.getClass().getSimpleName());
+      return createErrorResponse(
+          request.getRequestId(), "no response for " + this.getClass().getSimpleName());
     }
   }
 }

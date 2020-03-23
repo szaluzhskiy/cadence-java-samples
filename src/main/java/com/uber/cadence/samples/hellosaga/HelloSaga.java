@@ -25,7 +25,6 @@ import com.uber.cadence.samples.hellosaga.saga.CompensationWorkflowImpl;
 import com.uber.cadence.samples.hellosaga.saga.Saga;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.workflow.*;
-
 import java.io.IOException;
 
 public class HelloSaga {
@@ -110,7 +109,7 @@ public class HelloSaga {
     }
 
     @Override
-    public void failGreeting(String name)  {
+    public void failGreeting(String name) {
       System.out.println("GreetingActivitiesImpl::failGreeting");
       try {
         throw new IOException("Something bad happened");
@@ -136,25 +135,27 @@ public class HelloSaga {
       try {
         // Execute an action with compensation
         String greeting =
-            saga.executeFunc(activities::makeGreeting, name + " 0", activities::makeGreetingCompensation);
+            saga.executeFunc(
+                activities::makeGreeting, name + " 0", activities::makeGreetingCompensation);
         // Async API opt.1
-        String greeting1 = saga
-            .executeFuncAsync(activities::makeGreeting, name + " 1", activities::makeGreetingCompensation)
-            .get();
+        String greeting1 =
+            saga.executeFuncAsync(
+                    activities::makeGreeting, name + " 1", activities::makeGreetingCompensation)
+                .get();
         // Async API opt.2
-        String greeting2 = Async
-            .function(activities::makeGreeting, name + " 2")
-            .thenApply(r -> saga.withCompensation(r, activities::makeGreetingCompensation))
-            .get();
+        String greeting2 =
+            Async.function(activities::makeGreeting, name + " 2")
+                .thenApply(r -> saga.withCompensation(r, activities::makeGreetingCompensation))
+                .get();
         // Async API opt.3
-        String greeting3 = Async
-            .function(activities::makeGreeting, name + " 3")
-            .thenApply(saga.withCompensation(activities::makeGreetingCompensation))
-            .get();
+        String greeting3 =
+            Async.function(activities::makeGreeting, name + " 3")
+                .thenApply(saga.withCompensation(activities::makeGreetingCompensation))
+                .get();
 
         // Add recursive call to check deeply nested compensation works.
         if (!name.startsWith("____")) {
-           saga.executeChildFuncAsync(child::composeGreeting, "_" + name).get();
+          saga.executeChildFuncAsync(child::composeGreeting, "_" + name).get();
         }
 
         // Return all the data required for compensation of the whole workflow
