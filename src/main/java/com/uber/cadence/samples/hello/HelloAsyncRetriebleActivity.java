@@ -26,7 +26,6 @@ import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.workflow.Async;
-import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.time.Duration;
@@ -77,19 +76,22 @@ public class HelloAsyncRetriebleActivity {
     @Override
     public String getGreeting(String name) {
       // This is a non-blocking call that returns immediatly after the activity has completed.
-      Promise<String> positiveActivity =
-          Async.retry(
-              GreetingActivitiesImpl.getActivityRetryOptions().get(),
-              () -> Async.function(activities::composeGreeting, "Hello", name));
+      // Promise<String> positiveActivity =
 
-      positiveActivity.get();
+      Async.retry(
+          GreetingActivitiesImpl.getActivityRetryOptions().get(),
+          () -> Async.function(activities::composeGreeting, "Hello", name));
+
+      // positiveActivity.get();
       // This is a non-blocking call which will throw Runtime exception.
-      Promise<String> negativeActivity =
-          Async.retry(
-              GreetingActivitiesImpl.getActivityRetryOptions().get(),
-              () -> Async.function(angryActivities::composeAngryGreeting, "Hello", name));
+      // Promise<String> negativeActivity =
+      Async.retry(
+          GreetingActivitiesImpl.getActivityRetryOptions().get(),
+          () -> Async.function(angryActivities::composeAngryGreeting, "Hello", name));
 
-      negativeActivity.get();
+      // activities.composeGreeting("Sync", "activity");
+      System.out.println("FINISH");
+      // negativeActivity.get();
       return "Started";
     }
   }
@@ -136,8 +138,8 @@ public class HelloAsyncRetriebleActivity {
 
     @Override
     public String composeAngryGreeting(String greeting, String name) {
-      throw new RuntimeException("This is the end!");
-      // return "angry activity";
+      // throw new RuntimeException("This is the end!");
+      return "angry activity";
     }
 
     public static Optional<RetryOptions> getActivityRetryOptions() {
