@@ -24,6 +24,7 @@ import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.worker.Worker;
+import com.uber.cadence.workflow.Async;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.util.concurrent.CompletableFuture;
@@ -40,13 +41,13 @@ public class HelloAsyncActivityCompletion {
 
   public interface GreetingWorkflow {
     /** @return greeting string */
-    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 15, taskList = TASK_LIST)
+    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 1000000, taskList = TASK_LIST)
     String getGreeting(String name);
   }
 
   /** Activity interface is just a POJI. * */
   public interface GreetingActivities {
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 10)
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 100000)
     String composeGreeting(String greeting, String name);
   }
 
@@ -64,7 +65,10 @@ public class HelloAsyncActivityCompletion {
     @Override
     public String getGreeting(String name) {
       // This is a blocking call that returns only after the activity has completed.
-      return activities.composeGreeting("Hello", name);
+      Async.function(activities::composeGreeting, "Hello", name);
+      return "";
+      // System.out.println("Activity composeGreeting");
+      // return activities.composeGreeting("Hello", name);
     }
   }
 
@@ -116,13 +120,14 @@ public class HelloAsyncActivityCompletion {
     // Start listening to the workflow and activity task lists.
     factory.start();
 
-    // Get a workflow stub using the same task list the worker uses.
-    GreetingWorkflow workflow = workflowClient.newWorkflowStub(GreetingWorkflow.class);
-    // Execute a workflow returning a future that can be used to wait for the workflow
-    // completion.
-    CompletableFuture<String> greeting = WorkflowClient.execute(workflow::getGreeting, "World");
-    // Wait for workflow completion.
-    System.out.println(greeting.get());
-    System.exit(0);
+    while (true) { // Get a workflow stub using the same task list the worker uses.
+      GreetingWorkflow workflow = workflowClient.newWorkflowStub(GreetingWorkflow.class);
+      // Execute a workflow returning a future that can be used to wait for the workflow
+      // completion.
+      CompletableFuture<String> greeting = WorkflowClient.execute(workflow::getGreeting, "World");
+      // Wait for workflow completion.
+      // System.out.println(greeting.get());
+    }
+    // System.exit(0);
   }
 }
