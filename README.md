@@ -1,3 +1,8 @@
+Metrics: http://localhost:8092/actuator/prometheus
+Cadence: http://localhost:8088/
+Prometheus: http://localhost:9090/
+Grafana: http://localhost:3000/
+
 # Java Cadence Samples
 These samples demonstrate various capabilities of Java Cadence client and server. You can learn more about Cadence at:
 * [Cadence Service](https://github.com/uber/cadence)

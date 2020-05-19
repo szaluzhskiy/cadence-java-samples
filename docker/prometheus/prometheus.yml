@@ -28,6 +28,12 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090', 'localhost:']
 
+  - job_name: 'hello-application'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8092']
+
 #  - job_name: 'nginx'
 #    scrape_interval: 10s
 #    static_configs:

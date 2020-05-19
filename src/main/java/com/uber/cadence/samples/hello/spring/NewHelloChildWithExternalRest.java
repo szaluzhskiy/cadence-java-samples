@@ -17,20 +17,29 @@
 
 package com.uber.cadence.samples.hello.spring;
 
+import static com.uber.cadence.samples.common.SampleConstants.DOMAIN;
+
 import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.RegisterDomainRequest;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.reporter.CadenceClientStatsReporter;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerOptions;
-import com.uber.cadence.workflow.*;
+import com.uber.cadence.workflow.Async;
+import com.uber.cadence.workflow.ChildWorkflowOptions;
+import com.uber.cadence.workflow.Promise;
+import com.uber.cadence.workflow.Workflow;
+import com.uber.cadence.workflow.WorkflowMethod;
 import com.uber.m3.tally.RootScopeBuilder;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.Duration;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import javax.annotation.PostConstruct;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -38,13 +47,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
-import static com.uber.cadence.samples.common.SampleConstants.DOMAIN;
 
 /** Demonstrates a child workflow. Requires a local instance of the Cadence server to be running. */
 @Component
@@ -71,7 +73,7 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
   private void startFactory() {
     // Start a worker that hosts both parent and child workflow implementations.
     Scope scope = new RootScopeBuilder()
-            .reporter(new CadenceClientStatsReporter())
+        .reporter(new CustomCadenceClientStatsReporter())
             .reportEvery(Duration.ofSeconds(1));
 
     Worker.Factory factory = new Worker.Factory(

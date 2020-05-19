@@ -22,10 +22,14 @@ import static com.uber.cadence.samples.common.SampleConstants.DOMAIN;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.reporter.CadenceClientStatsReporter;
+import com.uber.cadence.samples.hello.spring.CustomCadenceClientStatsReporter;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerOptions;
-import com.uber.cadence.workflow.*;
+import com.uber.cadence.workflow.Async;
+import com.uber.cadence.workflow.ChildWorkflowOptions;
+import com.uber.cadence.workflow.Promise;
+import com.uber.cadence.workflow.Workflow;
+import com.uber.cadence.workflow.WorkflowMethod;
 import com.uber.m3.tally.RootScopeBuilder;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.Duration;
@@ -133,7 +137,7 @@ public class HelloChildWithExternalRest {
     // Start a worker that hosts both parent and child workflow implementations.
     Scope scope =
         new RootScopeBuilder()
-            .reporter(new CadenceClientStatsReporter())
+            .reporter(new CustomCadenceClientStatsReporter())
             .reportEvery(Duration.ofSeconds(1));
 
     Worker.Factory factory =
