@@ -58,7 +58,6 @@ services:
     restart: unless-stopped
     ports:
       - "9090:9090"
-    network_mode: host
     labels:
       org.label-schema.group: "monitoring"
 

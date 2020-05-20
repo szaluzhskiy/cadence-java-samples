@@ -32,7 +32,16 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     scrape_interval: 5s
     static_configs:
-      - targets: ['localhost:8092', 'localhost:8000']
+      - targets: ['host.docker.internal:8092']
+
+  - job_name: 'cadence-server-metrics'
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['cadence:8000']
+
+#      - targets: ['cadence:8000']
+#        or 'host.docker.internal:8000'
 
 #  - job_name: 'nginx'
 #    scrape_interval: 10s

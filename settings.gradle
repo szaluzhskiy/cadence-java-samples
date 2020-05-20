@@ -1,1 +1,5 @@
 rootProject.name = 'cadence-samples'
+include 'app-parent'
+include 'app-child'
+include 'main-module'
+

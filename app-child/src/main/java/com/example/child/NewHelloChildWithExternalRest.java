@@ -15,9 +15,9 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.samples.hello.spring;
+package com.example.child;
 
-import static com.uber.cadence.samples.common.SampleConstants.DOMAIN;
+import static com.example.child.SampleConstants.DOMAIN;
 
 import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.RegisterDomainRequest;
@@ -30,11 +30,7 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerOptions;
-import com.uber.cadence.workflow.Async;
-import com.uber.cadence.workflow.ChildWorkflowOptions;
-import com.uber.cadence.workflow.Promise;
-import com.uber.cadence.workflow.Workflow;
-import com.uber.cadence.workflow.WorkflowMethod;
+import com.uber.cadence.workflow.*;
 import com.uber.m3.tally.RootScopeBuilder;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.Duration;
@@ -50,6 +46,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
+
 
 /** Demonstrates a child workflow. Requires a local instance of the Cadence server to be running. */
 @Component
@@ -191,9 +188,15 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
   public static class GreetingChildImpl implements GreetingChild {
     public String composeGreeting(String greeting, String name) {
       Long startSW = System.nanoTime();
-      List<Promise<String>> activities = new ArrayList();
-      RetryOptions ro = new RetryOptions.Builder().setMaximumInterval(java.time.Duration.ofSeconds(30)).build();
-      ActivityOptions ao = new  ActivityOptions.Builder().setTaskList(TASK_LIST_CHILD).setRetryOptions(ro).build();
+      List<Promise<String>> activities = new ArrayList<>();
+      RetryOptions ro =
+          new RetryOptions.Builder()
+              .setInitialInterval(java.time.Duration.ofSeconds(30))
+              .setMaximumInterval(java.time.Duration.ofSeconds(30))
+              .setMaximumAttempts(5)
+              .build();
+      ActivityOptions ao =
+          new ActivityOptions.Builder().setTaskList(TASK_LIST_CHILD).setRetryOptions(ro).build();
       for (int i = 0; i < 10; i++) {
         GreetingActivities activity = Workflow.newActivityStub(GreetingActivities.class, ao);
         activities.add(Async.function(activity::composeGreeting, greeting + i, name));
