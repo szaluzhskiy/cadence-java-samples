@@ -22,17 +22,16 @@ services:
       - "7934:7934"
       - "7935:7935"
       - "7939:7939"
-      - "8000:8000"
+      - "8005:8005"
     volumes:
       - ./cadence:/config/dynamicconfig_local
       - cadence_data:/cadence
     environment:
       - "CASSANDRA_SEEDS=cassandra"
       - "DYNAMIC_CONFIG_FILE_PATH=/config/dynamicconfig_local/development_local.yaml"
-      - "PROMETHEUS_ENDPOINT=127.0.0.1:8000"
+      - "PROMETHEUS_ENDPOINT=$BIND_ON_IP:8005"
     depends_on:
       - cassandra
-#      - statsd
   cadence-web:
     image: ubercadence/web:3.4.1
     environment:
@@ -58,7 +57,7 @@ services:
     restart: unless-stopped
     ports:
       - "9090:9090"
-    network_mode: host
+#    network_mode: host
     labels:
       org.label-schema.group: "monitoring"
 
