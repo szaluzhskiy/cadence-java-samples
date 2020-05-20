@@ -15,17 +15,11 @@
  *  permissions and limitations under the License.
  */
 
-package com.example.child;
-
-import static com.example.child.SampleConstants.DOMAIN;
+package com.example.parent;
 
 import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.RegisterDomainRequest;
-import com.uber.cadence.activity.Activity;
-import com.uber.cadence.activity.ActivityMethod;
-import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.Worker;
@@ -34,38 +28,26 @@ import com.uber.cadence.workflow.*;
 import com.uber.m3.tally.RootScopeBuilder;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.Duration;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import javax.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+
+import static com.example.parent.SampleConstants.*;
 
 /** Demonstrates a child workflow. Requires a local instance of the Cadence server to be running. */
+@Slf4j
 @Component
-public class NewHelloChildWithExternalRest implements ApplicationRunner {
+public class ParentWorkflow implements ApplicationRunner {
 
-  private static final String TASK_LIST_PARENT = "HelloParent";
-
-  private static final String TASK_LIST_CHILD = "HelloChild";
-
-  private final Logger log = LoggerFactory.getLogger(NewHelloChildWithExternalRest.class);
-
-  @PostConstruct
-  private void init() {
-    startFactory();
-    registerDomain();
-  }
 
   @Override
   public void run(ApplicationArguments args) {
+    registerDomain();
+    startFactory();
     startClient();
   }
 
@@ -86,12 +68,6 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
         factory.newWorker(
             TASK_LIST_PARENT, new WorkerOptions.Builder().setMetricsScope(scope).build());
     workerParent.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
-
-    Worker workerChild =
-        factory.newWorker(
-            TASK_LIST_CHILD, new WorkerOptions.Builder().setMetricsScope(scope).build());
-    workerChild.registerWorkflowImplementationTypes(GreetingChildImpl.class);
-    workerChild.registerActivitiesImplementations(new GreetingActivitiesImpl());
 
     // Start listening to the workflow and activity task lists.
     factory.start();
@@ -122,11 +98,11 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
   }
 
   private void startClient() {
+    // Start a workflow execution. Usually this is done from another program.
+    WorkflowClient workflowClient = WorkflowClient.newInstance("127.0.0.1", 7933, DOMAIN);
     // Get a workflow stub using the same task list the worker uses.
     // Execute a workflow waiting for it to complete.
     GreetingWorkflow parentWorkflow;
-    // Start a workflow execution. Usually this is done from another program.
-    WorkflowClient workflowClient = WorkflowClient.newInstance("127.0.0.1", 7933, DOMAIN);
 
     while (true) {
       parentWorkflow = workflowClient.newWorkflowStub(GreetingWorkflow.class);
@@ -155,12 +131,6 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
     String composeGreeting(String greeting, String name);
   }
 
-  /** Activity interface is just to call external service and doNotCompleteActivity. */
-  public interface GreetingActivities {
-    @ActivityMethod(scheduleToStartTimeoutSeconds = 60000, startToCloseTimeoutSeconds = 60)
-    String composeGreeting(String greeting, String name);
-  }
-
   /** GreetingWorkflow implementation that calls GreetingsActivities#printIt. */
   public static class GreetingWorkflowImpl implements GreetingWorkflow {
 
@@ -176,66 +146,9 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
       // This is a blocking call that returns only after the child has completed.
       Promise<String> greeting = Async.function(child::composeGreeting, "Hello", name);
       // Do something else here.
+
       return greeting.get(); // blocks waiting for the child to complete.
       // return "Child started";
-    }
-  }
-
-  /**
-   * The child workflow implementation. A workflow implementation must always be public for the
-   * Cadence library to be able to create instances.
-   */
-  public static class GreetingChildImpl implements GreetingChild {
-    public String composeGreeting(String greeting, String name) {
-      Long startSW = System.nanoTime();
-      List<Promise<String>> activities = new ArrayList<>();
-      RetryOptions ro =
-          new RetryOptions.Builder()
-              .setInitialInterval(java.time.Duration.ofSeconds(30))
-              .setMaximumInterval(java.time.Duration.ofSeconds(30))
-              .setMaximumAttempts(5)
-              .build();
-      ActivityOptions ao =
-          new ActivityOptions.Builder().setTaskList(TASK_LIST_CHILD).setRetryOptions(ro).build();
-      for (int i = 0; i < 10; i++) {
-        GreetingActivities activity = Workflow.newActivityStub(GreetingActivities.class, ao);
-        activities.add(Async.function(activity::composeGreeting, greeting + i, name));
-      }
-      Promise greetingActivities = Promise.allOf(activities);
-      String result = greetingActivities.get() + " " + name + "!";
-      System.out.println(
-          "Duration of childwf - " + Duration.between(startSW, System.nanoTime()).getSeconds());
-      return result;
-    }
-  }
-
-  static class GreetingActivitiesImpl implements GreetingActivities {
-    @Override
-    public String composeGreeting(String greeting, String name) {
-      byte[] taskToken = Activity.getTaskToken();
-      sendRestRequest(taskToken);
-      Activity.doNotCompleteOnReturn();
-      return "Activity paused";
-    }
-  }
-
-  private static void sendRestRequest(byte[] taskToken) {
-    try {
-      URL url = new URL("http://127.0.0.1:8090/api/cadence/async");
-      HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-      connection.setDoOutput(true);
-      connection.setInstanceFollowRedirects(false);
-      connection.setRequestMethod("PUT");
-      connection.setRequestProperty("Content-Type", "application/octet-stream");
-
-      OutputStream os = connection.getOutputStream();
-      os.write(taskToken);
-      os.flush();
-
-      connection.getResponseCode();
-      connection.disconnect();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
     }
   }
 }

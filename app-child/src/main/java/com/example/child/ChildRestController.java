@@ -1,21 +1,22 @@
 package com.example.child;
 
-
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.WorkflowClient;
 import javax.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-
 @RestController
-public class NewChildRestController {
+@Slf4j
+public class ChildRestController {
 
   private ActivityCompletionClient completionClient;
 
   @PostConstruct
   void init() {
-    WorkflowClient workflowClient = WorkflowClient.newInstance("127.0.0.1", 7933, SampleConstants.DOMAIN);
+    WorkflowClient workflowClient =
+        WorkflowClient.newInstance("127.0.0.1", 7933, SampleConstants.DOMAIN);
     completionClient = workflowClient.newActivityCompletionClient();
   }
 
@@ -25,7 +26,8 @@ public class NewChildRestController {
     if (completionClient != null) {
       String response = "This is the response";
       completionClient.complete(taskToken, "THIS IS THE END!");
-      System.out.println("Complete activity!");
+      log.info("Complete activity!");
+
       return ResponseEntity.ok().body(response.getBytes());
     }
 

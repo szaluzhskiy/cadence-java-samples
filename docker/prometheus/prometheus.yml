@@ -28,20 +28,25 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090', 'localhost:']
 
-  - job_name: 'hello-application'
+  - job_name: 'hello-child-application'
     metrics_path: '/actuator/prometheus'
     scrape_interval: 5s
     static_configs:
       - targets: ['host.docker.internal:8092']
+#      - targets: ['127.0.0.1:8092']
 
-  - job_name: 'cadence-server-metrics'
+  - job_name: 'hello-parent-application'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8095']
+#      - targets: ['127.0.0.1:8095']
+
+  - job_name: 'cadence'
     metrics_path: '/metrics'
     scrape_interval: 5s
     static_configs:
-      - targets: ['cadence:8000']
-
-#      - targets: ['cadence:8000']
-#        or 'host.docker.internal:8000'
+      - targets: ['cadence:8005']
 
 #  - job_name: 'nginx'
 #    scrape_interval: 10s
