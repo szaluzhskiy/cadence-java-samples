@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CustomCadenceClientStatsReporter implements StatsReporter {
 
-  //com.uber.cadence.internal.metrics.MetricsTag
+  // com.uber.cadence.internal.metrics.MetricsTag
   public static final String ACTIVITY_TYPE = "ActivityType";
   public static final String DOMAIN = "Domain";
   public static final String TASK_LIST = "TaskList";
@@ -34,8 +34,10 @@ public class CustomCadenceClientStatsReporter implements StatsReporter {
   }
 
   public CustomCadenceClientStatsReporter(Predicate<String> metricsFilter) {
-    Preconditions.checkNotNull(metricsFilter, "No predicate for metrics filtering specified. "
-        + "Set property 'monitoring.cadence.stats-reporter.predicate=ALL'");
+    Preconditions.checkNotNull(
+        metricsFilter,
+        "No predicate for metrics filtering specified. "
+            + "Set property 'monitoring.cadence.stats-reporter.predicate=ALL'");
     this.metricsFilter = metricsFilter;
   }
 
@@ -66,14 +68,16 @@ public class CustomCadenceClientStatsReporter implements StatsReporter {
   public void reportGauge(String name, Map<String, String> tags, double value) {
     log.debug("GaugeImpl {}: {} {}", name, tags, value);
     if (metricsFilter.test(name)) {
-      AtomicDouble gauge = gauges.computeIfAbsent(name, metricName -> {
-        AtomicDouble result = Metrics.gauge(name, getTags(tags), new AtomicDouble());
-        Preconditions.checkNotNull(result, "Metrics.gauge should not return null ever");
-        return result;
-      });
+      AtomicDouble gauge =
+          gauges.computeIfAbsent(
+              name,
+              metricName -> {
+                AtomicDouble result = Metrics.gauge(name, getTags(tags), new AtomicDouble());
+                Preconditions.checkNotNull(result, "Metrics.gauge should not return null ever");
+                return result;
+              });
       gauge.set(value);
     }
-
   }
 
   @Override
@@ -85,14 +89,24 @@ public class CustomCadenceClientStatsReporter implements StatsReporter {
   }
 
   @Override
-  public void reportHistogramValueSamples(String name, Map<String, String> tags, Buckets buckets,
-      double bucketLowerBound, double bucketUpperBound, long samples) {
+  public void reportHistogramValueSamples(
+      String name,
+      Map<String, String> tags,
+      Buckets buckets,
+      double bucketLowerBound,
+      double bucketUpperBound,
+      long samples) {
     // NOOP
   }
 
   @Override
-  public void reportHistogramDurationSamples(String name, Map<String, String> tags, Buckets buckets,
-      Duration bucketLowerBound, Duration bucketUpperBound, long samples) {
+  public void reportHistogramDurationSamples(
+      String name,
+      Map<String, String> tags,
+      Buckets buckets,
+      Duration bucketLowerBound,
+      Duration bucketUpperBound,
+      long samples) {
     // NOOP
   }
 
@@ -101,8 +115,6 @@ public class CustomCadenceClientStatsReporter implements StatsReporter {
         Tag.of(ACTIVITY_TYPE, Strings.nullToEmpty(tags.get(ACTIVITY_TYPE))),
         Tag.of(DOMAIN, Strings.nullToEmpty(tags.get(DOMAIN))),
         Tag.of(TASK_LIST, Strings.nullToEmpty(tags.get(TASK_LIST))),
-        Tag.of(WORKFLOW_TYPE, Strings.nullToEmpty(tags.get(WORKFLOW_TYPE)))
-    );
+        Tag.of(WORKFLOW_TYPE, Strings.nullToEmpty(tags.get(WORKFLOW_TYPE))));
   }
-
 }

@@ -23,7 +23,9 @@ import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.RegisterDomainRequest;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.Worker;
@@ -39,8 +41,9 @@ import com.uber.m3.util.Duration;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.PostConstruct;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +61,6 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
 
   private final Logger log = LoggerFactory.getLogger(NewHelloChildWithExternalRest.class);
 
-
   @PostConstruct
   private void init() {
     startFactory();
@@ -72,22 +74,25 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
 
   private void startFactory() {
     // Start a worker that hosts both parent and child workflow implementations.
-    Scope scope = new RootScopeBuilder()
-        .reporter(new CustomCadenceClientStatsReporter())
+    Scope scope =
+        new RootScopeBuilder()
+            .reporter(new CustomCadenceClientStatsReporter())
             .reportEvery(Duration.ofSeconds(1));
 
-    Worker.Factory factory = new Worker.Factory(
+    Worker.Factory factory =
+        new Worker.Factory(
             "127.0.0.1",
             7933,
             DOMAIN,
             new Worker.FactoryOptions.Builder().setMetricScope(scope).build());
-    Worker workerParent = factory.newWorker(
+    Worker workerParent =
+        factory.newWorker(
             TASK_LIST_PARENT, new WorkerOptions.Builder().setMetricsScope(scope).build());
     workerParent.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
 
     Worker workerChild =
-            factory.newWorker(
-                    TASK_LIST_CHILD, new WorkerOptions.Builder().setMetricsScope(scope).build());
+        factory.newWorker(
+            TASK_LIST_CHILD, new WorkerOptions.Builder().setMetricsScope(scope).build());
     workerChild.registerWorkflowImplementationTypes(GreetingChildImpl.class);
     workerChild.registerActivitiesImplementations(new GreetingActivitiesImpl());
 
@@ -106,10 +111,10 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
     try {
       cadenceService.RegisterDomain(request);
       System.out.println(
-              "Successfully registered domain \""
-                      + DOMAIN
-                      + "\" with retentionDays="
-                      + retentionPeriodInDays);
+          "Successfully registered domain \""
+              + DOMAIN
+              + "\" with retentionDays="
+              + retentionPeriodInDays);
 
     } catch (DomainAlreadyExistsError e) {
       log.error("Domain \"" + DOMAIN + "\" is already registered");
@@ -142,20 +147,20 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
   /** The parent workflow interface. */
   public interface GreetingWorkflow {
     /** @return greeting string */
-    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 600000, taskList = TASK_LIST_PARENT)
+    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 60000, taskList = TASK_LIST_PARENT)
     String getGreeting(String name);
   }
 
   /** The child workflow interface. */
   public interface GreetingChild {
     /** @return greeting string */
-    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 600000, taskList = TASK_LIST_CHILD)
+    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 60000, taskList = TASK_LIST_CHILD)
     String composeGreeting(String greeting, String name);
   }
 
   /** Activity interface is just to call external service and doNotCompleteActivity. */
   public interface GreetingActivities {
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 600000)
+    @ActivityMethod(scheduleToStartTimeoutSeconds = 60000, startToCloseTimeoutSeconds = 60)
     String composeGreeting(String greeting, String name);
   }
 
@@ -185,29 +190,34 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
    */
   public static class GreetingChildImpl implements GreetingChild {
     public String composeGreeting(String greeting, String name) {
-      GreetingActivities activities = Workflow.newActivityStub(GreetingActivities.class);
-      Promise greetingActivities = Async.function(activities::composeGreeting, greeting, name);
-      return greetingActivities.get() + " " + name + "!";
+      Long startSW = System.nanoTime();
+      List<Promise<String>> activities = new ArrayList();
+      RetryOptions ro = new RetryOptions.Builder().setMaximumInterval(java.time.Duration.ofSeconds(30)).build();
+      ActivityOptions ao = new  ActivityOptions.Builder().setTaskList(TASK_LIST_CHILD).setRetryOptions(ro).build();
+      for (int i = 0; i < 10; i++) {
+        GreetingActivities activity = Workflow.newActivityStub(GreetingActivities.class, ao);
+        activities.add(Async.function(activity::composeGreeting, greeting + i, name));
+      }
+      Promise greetingActivities = Promise.allOf(activities);
+      String result = greetingActivities.get() + " " + name + "!";
+      System.out.println(
+          "Duration of childwf - " + Duration.between(startSW, System.nanoTime()).getSeconds());
+      return result;
     }
   }
 
   static class GreetingActivitiesImpl implements GreetingActivities {
     @Override
     public String composeGreeting(String greeting, String name) {
-      System.out.println("st===1 ");
       byte[] taskToken = Activity.getTaskToken();
       sendRestRequest(taskToken);
-      System.out.println("st===2 ");
-      System.out.println(Hex.encodeHexString(taskToken));
       Activity.doNotCompleteOnReturn();
-      System.out.println("st===3 ");
-      return "";
+      return "Activity paused";
     }
   }
 
   private static void sendRestRequest(byte[] taskToken) {
     try {
-      System.out.println("st===4");
       URL url = new URL("http://127.0.0.1:8090/api/cadence/async");
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
       connection.setDoOutput(true);
@@ -221,8 +231,6 @@ public class NewHelloChildWithExternalRest implements ApplicationRunner {
 
       connection.getResponseCode();
       connection.disconnect();
-      System.out.println("st===5");
-
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
