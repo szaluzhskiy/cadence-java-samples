@@ -7,6 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import static com.example.child.SampleConstants.CADENCE_HOST;
+import static com.example.child.SampleConstants.CADENCE_PORT;
+
 @RestController
 @Slf4j
 public class ChildRestController {
@@ -16,7 +19,8 @@ public class ChildRestController {
   @PostConstruct
   void init() {
     WorkflowClient workflowClient =
-        WorkflowClient.newInstance("127.0.0.1", 7933, SampleConstants.DOMAIN);
+        WorkflowClient.newInstance(System.getenv(CADENCE_HOST), Integer.parseInt(System.getenv(CADENCE_PORT)),
+                SampleConstants.DOMAIN);
     completionClient = workflowClient.newActivityCompletionClient();
   }
 

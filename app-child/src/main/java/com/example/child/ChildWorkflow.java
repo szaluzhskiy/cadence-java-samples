@@ -17,9 +17,6 @@
 
 package com.example.child;
 
-import static com.example.child.SampleConstants.DOMAIN;
-import static com.example.child.SampleConstants.TASK_LIST_CHILD;
-
 import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.RegisterDomainRequest;
 import com.uber.cadence.activity.Activity;
@@ -45,6 +42,8 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import static com.example.child.SampleConstants.*;
+
 /**
  * Demonstrates a child workflow. Requires a local instance of the Cadence server to be running.
  *
@@ -69,8 +68,8 @@ public class ChildWorkflow implements ApplicationRunner {
 
     Worker.Factory factory =
         new Worker.Factory(
-            "127.0.0.1",
-            7933,
+            System.getenv(CADENCE_HOST),
+            Integer.parseInt(System.getenv(CADENCE_PORT)),
             DOMAIN,
             new Worker.FactoryOptions.Builder().setMetricScope(scope).build());
 
@@ -82,10 +81,12 @@ public class ChildWorkflow implements ApplicationRunner {
 
     // Start listening to the workflow and activity task lists.
     factory.start();
+    log.info("Started factory");
   }
 
   private void registerDomain() {
-    IWorkflowService cadenceService = new WorkflowServiceTChannel();
+    IWorkflowService cadenceService = new WorkflowServiceTChannel( System.getenv(CADENCE_HOST),
+            Integer.parseInt(System.getenv(CADENCE_PORT)));
     RegisterDomainRequest request = new RegisterDomainRequest();
     request.setDescription("Java Samples");
     request.setEmitMetric(false);
@@ -105,6 +106,9 @@ public class ChildWorkflow implements ApplicationRunner {
 
     } catch (TException e) {
       log.error("Error occurred", e);
+
+    } finally {
+      cadenceService.close();
     }
   }
 
@@ -163,7 +167,7 @@ public class ChildWorkflow implements ApplicationRunner {
 
   private static void sendRestRequest(byte[] taskToken) {
     try {
-      URL url = new URL("http://127.0.0.1:8090/api/cadence/async");
+      URL url = new URL(System.getenv(GO_SERVICE_URL));
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
       connection.setDoOutput(true);
       connection.setInstanceFollowRedirects(false);

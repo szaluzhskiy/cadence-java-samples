@@ -22,7 +22,6 @@ import com.uber.cadence.RegisterDomainRequest;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
-import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
@@ -34,26 +33,24 @@ import com.uber.m3.tally.Scope;
 import com.uber.m3.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.thrift.TException;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.example.parent.SampleConstants.*;
 
 /** Demonstrates a child workflow. Requires a local instance of the Cadence server to be running. */
-@Slf4j
 @Component
-public class ParentWorkflow implements ApplicationRunner {
+@Slf4j
+public class ParentWorkflow {
 
-
-  @Override
-  public void run(ApplicationArguments args) {
+  @PostConstruct
+  public void init() {
+    log.info("Run parent app");
     registerDomain();
     startFactory();
-    startClient();
   }
 
   private void startFactory() {
@@ -65,10 +62,11 @@ public class ParentWorkflow implements ApplicationRunner {
 
     Worker.Factory factory =
         new Worker.Factory(
-            "127.0.0.1",
-            7933,
+            System.getenv(CADENCE_HOST),
+            Integer.parseInt(System.getenv(CADENCE_PORT)),
             DOMAIN,
-            new Worker.FactoryOptions.Builder().setMetricScope(scope).build());
+            new Worker.FactoryOptions.Builder().setMetricScope(scope).build()
+        );
 
     Worker workerParent =
         factory.newWorker(
@@ -80,10 +78,14 @@ public class ParentWorkflow implements ApplicationRunner {
 
     // Start listening to the workflow and activity task lists.
     factory.start();
+    log.info("Started factory");
   }
 
   private void registerDomain() {
-    IWorkflowService cadenceService = new WorkflowServiceTChannel();
+    IWorkflowService cadenceService = new WorkflowServiceTChannel(
+            System.getenv(CADENCE_HOST),
+            Integer.parseInt(System.getenv(CADENCE_PORT))
+    );
     RegisterDomainRequest request = new RegisterDomainRequest();
     request.setDescription("Java Samples");
     request.setEmitMetric(false);
@@ -103,27 +105,10 @@ public class ParentWorkflow implements ApplicationRunner {
 
     } catch (TException e) {
       log.error("Error occurred", e);
+
+    } finally {
+      cadenceService.close();
     }
-  }
-
-  private void startClient() {
-    // Start a workflow execution. Usually this is done from another program.
-    WorkflowClient workflowClient = WorkflowClient.newInstance("127.0.0.1", 7933, DOMAIN);
-    // Get a workflow stub using the same task list the worker uses.
-    // Execute a workflow waiting for it to complete.
-    GreetingWorkflow parentWorkflow;
-
-    while (true) {
-      parentWorkflow = workflowClient.newWorkflowStub(GreetingWorkflow.class);
-      WorkflowClient.start(parentWorkflow::getGreeting, "World");
-      try {
-        Thread.sleep(500);
-
-      } catch (InterruptedException e) {
-        log.error("Error occurred", e);
-      }
-    }
-    // System.exit(0);
   }
 
   /** The parent workflow interface. */
@@ -169,12 +154,15 @@ public class ParentWorkflow implements ApplicationRunner {
 
       // This is a blocking call that returns only after the child has completed.
       Promise<String> greeting = Async.function(child::composeGreeting, "Hello", name);
+      // blocks waiting for the child to complete.
+      String childResult = greeting.get();
 
       // Do something else here.
       Promise<List<String>> parentPromises = runParentActivities();
-      System.out.println("Got result in parent: " + String.join(";\n", parentPromises.get()) + "\n");
+      List<String> promisesResults = parentPromises.get();
+      System.out.println("Got result in parent: \n" + String.join(";\n", promisesResults) + "\n");
 
-      return greeting.get(); // blocks waiting for the child to complete.
+      return childResult;
     }
 
     private Promise<List<String>> runParentActivities() {

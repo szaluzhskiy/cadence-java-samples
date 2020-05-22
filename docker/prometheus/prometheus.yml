@@ -32,15 +32,40 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     scrape_interval: 5s
     static_configs:
-      - targets: ['host.docker.internal:8092']
+#      - targets: ['app-child:8091']
+#        labels:
+#          instance: 'app-child-1'
+      - targets: ['app-child:8092']
 #      - targets: ['127.0.0.1:8092']
+#        labels:
+#          instance: 'app-child-2'
+#      - targets: ['app-child:8093']
+#        labels:
+#          instance: 'app-child-3'
+#      - targets: ['app-child:8094']
+#        labels:
+#          instance: 'app-child-4'
 
   - job_name: 'hello-parent-application'
     metrics_path: '/actuator/prometheus'
     scrape_interval: 5s
     static_configs:
-      - targets: ['host.docker.internal:8095']
+      - targets: ['app-parent:8095']
+#        labels:
+#          instance: 'app-parent-1'
 #      - targets: ['127.0.0.1:8095']
+#      - targets: ['app-parent:8096']
+#        labels:
+#          instance: 'app-parent-2'
+#      - targets: ['app-parent:8097']
+#        labels:
+#          instance: 'app-parent-3'
+#      - targets: ['app-parent:8098']
+#        labels:
+#          instance: 'app-parent-4'
+#      - targets: ['app-parent:8099']
+#        labels:
+#          instance: 'app-parent-5'
 
   - job_name: 'cadence'
     metrics_path: '/metrics'

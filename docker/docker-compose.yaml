@@ -1,4 +1,4 @@
-version: '3'
+version: '3.3'
 volumes:
   prometheus_data: {}
   grafana_data: {}
@@ -38,6 +38,32 @@ services:
       - "CADENCE_TCHANNEL_PEERS=cadence:7933"
     ports:
       - "8088:8088"
+    depends_on:
+      - cadence
+
+  app-parent:
+    image: app/app-parent:v1
+    ports:
+      - "8095-8099:8095"
+    environment:
+      - "CADENCE_HOST=cadence"
+      - "CADENCE_PORT=7933"
+#    deploy:
+#      replicas: 3
+    depends_on:
+      - cadence
+
+  app-child:
+    image: app/app-child:v1
+    ports:
+      - "8091-8094:8092"
+    environment:
+      - "CADENCE_HOST=cadence"
+      - "CADENCE_PORT=7933"
+      - "GO_SERVICE_URL=http://host.docker.internal:8090/api/cadence/async"
+    #      - "GO_SERVICE_URL=http://127.0.0.1:8090/api/cadence/async"
+    #    deploy:
+    #      replicas: 4
     depends_on:
       - cadence
 

@@ -1,20 +1,20 @@
 plugins {
     id 'net.minecrell.licenser' version '0.3'
-    id "com.github.sherter.google-java-format" version "0.6"
-    id "net.ltgt.errorprone" version "0.0.13"
+//    id "com.github.sherter.google-java-format" version "0.6"
+//    id "net.ltgt.errorprone" version "0.0.13"
     id 'org.springframework.boot' version '2.2.2.RELEASE'
     id 'io.spring.dependency-management' version '1.0.8.RELEASE'
 }
 
 apply plugin: 'java'
 apply plugin: 'maven'
-apply plugin: 'com.github.sherter.google-java-format'
+//apply plugin: 'com.github.sherter.google-java-format'
 
-googleJavaFormat {
-    toolVersion '1.5'
-    include '**/*.java'
-    exclude '**/generated-sources/*'
-}
+//googleJavaFormat {
+//    toolVersion '1.5'
+//    include '**/*.java'
+//    exclude '**/generated-sources/*'
+//}
 
 group = 'com.example.child'
 version = '0.0.1'
@@ -55,12 +55,12 @@ dependencies {
     }
 }
 
-compileJava {
-    dependsOn 'googleJavaFormat'
-    options.encoding = 'UTF-8'
-    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation" << "-XepExcludedPaths:" +
-            ".*/generated-sources/.*"
-}
+//compileJava {
+//    dependsOn 'googleJavaFormat'
+//    options.encoding = 'UTF-8'
+//    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation" << "-XepExcludedPaths:" +
+//            ".*/generated-sources/.*"
+//}
 
 task execute(type: JavaExec) {
     main = findProperty("mainClass") ?: ""
