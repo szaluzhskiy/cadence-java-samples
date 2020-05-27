@@ -49,7 +49,7 @@ public class ParentWorkflow {
   @PostConstruct
   public void init() {
     log.info("Run parent app");
-    registerDomain();
+    //registerDomain();
     startFactory();
   }
 
@@ -118,12 +118,12 @@ public class ParentWorkflow {
     String getGreeting(String name);
   }
 
-  /** The child workflow interface. */
-  public interface GreetingChild {
-    /** @return greeting string */
-    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 60000, taskList = TASK_LIST_CHILD)
-    String composeGreeting(String greeting, String name);
-  }
+//  /** The child workflow interface. */
+//  public interface GreetingChild {
+//    /** @return greeting string */
+//    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 60000, taskList = TASK_LIST_CHILD)
+//    String composeGreeting(String greeting, String name);
+//  }
 
   public interface ParentActivities {
     @ActivityMethod(scheduleToStartTimeoutSeconds = 60000, startToCloseTimeoutSeconds = 60)
@@ -133,8 +133,6 @@ public class ParentWorkflow {
   static class ParentActivitiesImpl implements ParentActivities {
     @Override
     public String composeParentGreeting(int activityIdx) {
-//      System.out.printf("[%d] Parent activity done\n", activityIdx);
-
       return String.format("Finished parent activity: idx: [%d], activity id: [%s], task: [%s]", activityIdx,
               Activity.getTask().getActivityId(), new String(Activity.getTaskToken()));
     }
@@ -149,20 +147,20 @@ public class ParentWorkflow {
       ChildWorkflowOptions options =
           new ChildWorkflowOptions.Builder().setTaskList(TASK_LIST_CHILD).build();
 
-      // Workflows are stateful. So a new stub must be created for each new child.
-      GreetingChild child = Workflow.newChildWorkflowStub(GreetingChild.class, options);
-
-      // This is a blocking call that returns only after the child has completed.
-      Promise<String> greeting = Async.function(child::composeGreeting, "Hello", name);
-      // blocks waiting for the child to complete.
-      String childResult = greeting.get();
+//      // Workflows are stateful. So a new stub must be created for each new child.
+//      GreetingChild child = Workflow.newChildWorkflowStub(GreetingChild.class, options);
+//
+//      // This is a blocking call that returns only after the child has completed.
+//      Promise<String> greeting = Async.function(child::composeGreeting, "Hello", name);
+//      // blocks waiting for the child to complete.
+//      String childResult = greeting.get();
 
       // Do something else here.
       Promise<List<String>> parentPromises = runParentActivities();
       List<String> promisesResults = parentPromises.get();
       System.out.println("Got result in parent: \n" + String.join(";\n", promisesResults) + "\n");
 
-      return childResult;
+      return "EXIT FROM MAIN WF";
     }
 
     private Promise<List<String>> runParentActivities() {
@@ -179,7 +177,7 @@ public class ParentWorkflow {
                       .build();
 
       List<Promise<String>> parentActivities = new ArrayList<>();
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 10; i++) {
         ParentActivities activity = Workflow.newActivityStub(ParentActivities.class, ao);
         parentActivities.add(Async.function(activity::composeParentGreeting, i));
       }
